@@ -5,8 +5,13 @@
     "moduleResolution": "bundler",
     "strict": true,
     "esModuleInterop": true,
-    "rootDir": "./src",
+    "rootDir":"./src",
     "outDir": "./dist",
-    "ignoreDeprecations": "6.0"
-  }
+    "ignoreDeprecations": "6.0",
+    "types": ["node"]
+  },
+
+  "include": [
+    "src"
+  ]
 }
