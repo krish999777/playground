@@ -2,14 +2,14 @@ import {PrismaClient} from '@prisma/client'
 
 const prisma=new PrismaClient()
 
-
-const allUsers=await prisma.user.findMany({
-    where:{
-        name:"krish",
-        email:
-        "alpa"
-    }
-    
+// const many=await prisma.user.findMany({
+//     where:{books:{some:'atomic habits'}}
+// })
+const updated=await prisma.user.updateManyAndReturn({
+    where:{name:'chirag'},
+    data:{books:[]}
 })
-await prisma.user.
-console.log(allUsers)
+
+
+const allUsers=await prisma.user.findMany({})
+console.log(updated)
