@@ -17,5 +17,14 @@ model User{
   name    String
   email   String   @unique
   books   String[] @default([])
+  resume Resume[]
   @@map("users")
+}
+model Resume{
+  id Int @id @default(autoincrement())
+  title String
+  content String
+  userId Int
+  user    User   @relation(fields: [userId], references: [id])
+  @@map("resumes")
 }
