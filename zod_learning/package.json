@@ -1,0 +1,19 @@
+{
+  "name": "zod_learning",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "krish",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "node dist/server.js"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  }
+}
