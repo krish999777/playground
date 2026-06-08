@@ -12,10 +12,15 @@ export default function(){
     return <div>Loading...</div>
   }
   return(
-      <div>
-        {data?data.map((data:any)=>{
-          return (<div key={data.id}><div>{data.title}</div><div>{data.body}</div></div>)
-        }):null}
-      </div>
+    <div>
+      {data?data.map((data:any)=>{
+        return (
+          <div key={data.id}>
+            <div>{data.title}</div>
+            <div>{data.body}</div>
+          </div>
+        )
+      }):null}
+    </div>
   )
 }
