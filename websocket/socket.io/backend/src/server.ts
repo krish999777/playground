@@ -19,6 +19,7 @@ io.on("connection",(socket)=>{
     console.log('Random number:',num)
     socket.emit('message',num)
     socket.on('ping',(data)=>console.log(data))
+    socket.on('get-time',()=>socket.broadcast.emit('time',new Date().toDateString()))
 })
 app.get('/',(req,res)=>res.status(200).json({message:io}))
 
