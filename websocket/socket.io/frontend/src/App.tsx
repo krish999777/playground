@@ -12,7 +12,6 @@ export default function App(){
     return ()=>{
       socket.off('message')
       socket.off('time')
-      socket.disconnect()
     }
   },[])
   

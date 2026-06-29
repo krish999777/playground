@@ -20,6 +20,7 @@ io.on("connection",(socket)=>{
     socket.emit('message',num)
     socket.on('ping',(data)=>console.log(data))
     socket.on('get-time',()=>socket.broadcast.emit('time',new Date().toDateString()))
+    socket.on("disconnect", (reason) =>console.log("User disconnected "+reason));
 })
 app.get('/',(req,res)=>res.status(200).json({message:io}))
 
