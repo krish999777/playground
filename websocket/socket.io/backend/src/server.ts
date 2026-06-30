@@ -15,12 +15,18 @@ const io=new Server(server,{
 app.use(cors())
 io.on("connection",(socket)=>{
     console.log("A client connected!")
-    const num=Math.floor(Math.random()*10)
-    console.log('Random number:',num)
-    socket.emit('message',num)
-    socket.on('ping',(data)=>console.log(data))
-    socket.on('get-time',()=>socket.broadcast.emit('time',new Date().toDateString()))
-    socket.on("disconnect", (reason) =>console.log("User disconnected "+reason));
+    socket.on("disconnect", (reason) =>console.log("User disconnected "+reason))
+    socket.on('login',login=>{
+        socket.data.user=login
+        socket.join(login)
+    })
+    socket.on('select-user',data=>{
+        socket.data.currentUser=data
+    })
+    socket.on('message',(message)=>{
+        socket.to(socket.data.currentUser).emit('message',{from:socket.data.user,text:message})
+        io.to(socket.data.user).emit('message',{from:socket.data.user,text:message})
+    })
 })
 app.get('/',(req,res)=>res.status(200).json({message:io}))
 
