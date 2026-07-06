@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role{
+  candidate
+  recruiter
+}
+
+model User{
+  id Int @id @default(autoincrement())
+  name String
+  email String @unique
+  password String
+  role Role
+  resume Resume?
+  profilePublicId String?
+  profileUrl String @default("https://res.cloudinary.com/dls73n4ig/image/upload/v1782037910/resume_builder/profile/default.jpg")
+  conversationsAsCandidate Conversation[] @relation("CandidateConversations")
+  conversationsAsRecruiter Conversation[] @relation("RecruiterConversations")
+  messages Message[]
+  @@map("users")
+}
+model Education{
+  id Int @id @default(autoincrement())
+  resumeId Int
+  resume Resume @relation(fields: [resumeId], references: [id],onDelete: Cascade)
+  institution String
+  degree String?
+  startDate DateTime
+  endDate DateTime?
+  @@map("education")
+}
+
+model Experience{
+  id Int @id @default(autoincrement())
+  resumeId Int
+  resume Resume @relation(fields: [resumeId], references: [id],onDelete: Cascade)
+  company String
+  role String
+  startDate DateTime
+  endDate DateTime?
+  @@map("experience")
+}
+
+model Project{
+  id Int @id @default(autoincrement())
+  resumeId Int
+  resume Resume @relation(fields: [resumeId], references: [id],onDelete: Cascade)
+  name String
+  description String
+  sourceCode String?
+  deployedLink String?
+  @@map("projects")
+}
+model Achievement{
+  id Int @id @default(autoincrement())
+  resumeId Int
+  resume Resume @relation(fields: [resumeId], references: [id],onDelete: Cascade)
+  name String
+  description String
+  @@map("achievements")
+}
+
+model Resume{
+  id Int @id @default(autoincrement())
+  userId Int @unique 
+  user User @relation(fields:[userId], references: [id])
+  title String
+  summary String 
+  skills String[]
+  education Education[]
+  experience Experience[]
+  projects Project[]
+  achievements Achievement[]
+  linkedin String?
+  visibility Boolean @default(true)
+  @@map("resumes")
+}
+
+model Conversation{
+  id Int @id @default(autoincrement())
+  candidateId Int 
+  recruiterId Int
+  candidate User @relation("CandidateConversations", fields: [candidateId], references: [id])
+  recruiter User @relation("RecruiterConversations", fields: [recruiterId], references: [id])
+  lastMessagedAt DateTime @default(now())
+  messages Message[]
+  @@unique([recruiterId, candidateId])
+  @@map("conversations")
+}
+
+model Message{
+  id Int @id @default(autoincrement())
+  conversationId Int
+  conversation Conversation @relation(fields: [conversationId],references: [id])
+  senderId Int 
+  sender User @relation(fields: [senderId], references: [id])
+  message String
+  sentAt DateTime @default(now())
+  @@map("chats")
+}
