@@ -3,6 +3,6 @@ import dotenv from 'dotenv'
 dotenv.config()
 const {Pool}=pkg
 const pool=new Pool({
-    connectionString:process.env.DATABASE_URL
+    connectionString:process.env.DATABASE_URL2
 })
 export default pool
