@@ -15,6 +15,18 @@ const responseSchema=z.object({
     query:z.string().optional().nullable()
 })
 
+type responseType=z.infer<typeof responseSchema>
+
+async function executeQuery(query:string){
+    try{
+        const data=await db.query(query)
+        return data
+    }catch(err:any){
+        err.isDbError=true
+        throw err
+    }
+}
+
 app.get('/',async (req,res)=>{
     const {search:rawSearch}=req.query
     const result=z.string().min(1).trim().safeParse(rawSearch)
@@ -36,7 +48,7 @@ app.get('/',async (req,res)=>{
             query:undefined||string
         }
         If the users query is not related to these tables or asks for things other than search, then keep success field false, query field null and error field as:
-        Sorry I am unable to satisfy this query
+        Sorry I do not have access to satisfy this query
 
         If you can make the SQL query then keep the success field true,error field null and query field as the SQL query needed to answers the users question
         Create the SQL query from what the user asks, I have provided an example
@@ -189,10 +201,70 @@ app.get('/',async (req,res)=>{
             response_format:zodResponseFormat(responseSchema,'query'),
             temperature:0
         })
-        const data=response.choices[0]?.message.content
-        console.log(data)
+        const rawData=response.choices[0]?.message.content
+        if(!rawData){
+            return res.status(500).json({error:"Model unable to generate response"})
+        }
+        const data:responseType=JSON.parse(rawData)
+        if(!data){
+            return res.status(500).json({error:"Error in parsing from JSON"})
+        }
+        if(!data.success||!data.query){
+            if(data.error){
+                return res.status(200).json({message:data.error})
+            }else{
+                return res.status(500).json({error:"Unkown error"})
+            }
+        }
+        const query=data.query.trim()
+        const restrictedWords=['DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'TRUNCATE', 'GRANT', 'REVOKE']
+        if(!query.toUpperCase().startsWith('SELECT')||restrictedWords.some(word=>query.toUpperCase().includes(`${word} `))){
+            return res.status(200).json({message:'Sorry I do not have access to satisfy this query'})
+        }
+
+        const returnedData=await executeQuery(query)
+
+        console.log(`user question: ${search}, SQL query: ${query}, Data: ${JSON.stringify(returnedData.rows)}`)
+
+        const finalMessages=[{
+            role:'system' as const,
+            content:`
+            You are a data to text converter.
+            You will be given:
+            1)user question: The question the user asked about data in the database 
+            2)SQL query: The SQL query used to get the data required from the database to answer the question of the user
+            3)Data: The data returned from the Database using the SQL query
+
+            You have to answer the question of the user in a clear spoken english using the Data field
+            Don't refernce the query answer it directly to the user questions
+            `
+        },{
+            role:'user' as const,
+            content:`
+                user question: ${search},
+                SQL query: ${query},
+                Data: ${JSON.stringify(returnedData.rows)}
+            `
+        }]
+
+        const finalResponse=await openai.chat.completions.create({
+            model:'lfm2.5:8b',
+            messages:finalMessages
+        })
+
+        const finalData=finalResponse.choices[0]?.message.content
+
+        if(!finalData){
+            return res.status(500).json({error:"Model unable to generate response"})
+        }
+
+        return res.status(200).json({message:finalData})
+        
     }catch(err:any){
         console.log(err.message)
+        if(err.isDbError){
+            return res.status(500).json({error:"Invalid SQL query returned by model, please try again"})
+        }
         return res.status(500).json({error:"Internal server error"})
     }
 })
