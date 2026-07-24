@@ -1,5 +1,6 @@
 import express from 'express'
-import { initChatModel,HumanMessage,SystemMessage,AIMessage } from "langchain"
+import { initChatModel } from "langchain"
+import { ChatPromptTemplate,MessagesPlaceholder } from "@langchain/core/prompts";
 
 const app=express()
 
@@ -7,12 +8,24 @@ const model=await initChatModel('lfm2.5:8b',{
     modelProvider: "ollama"
 })
 
-const res=await model.invoke([
-    new SystemMessage('Respond in one line only'),
-    new HumanMessage('My name is krish. What is node.js'),
-    new AIMessage('Nice to meet you krish, Node.js is server side scripting language in js'),
-    new HumanMessage('What is my name?')
+const prompt = ChatPromptTemplate.fromMessages([
+    ['system','Respond in {lines} line only'],
+    new MessagesPlaceholder('fewShot'),
+    ['human','What is {topic}']
 ])
+
+const messages=await prompt.invoke({
+    lines:1,
+    topic:'E in that',
+    fewShot:[
+        ['human','What is MERN'],
+        ['ai','MongoDB Express React Node']
+    ]
+})
+
+console.log(messages)
+
+const res=await model.invoke(messages)
 
 console.log(res.content)
 
