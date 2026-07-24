@@ -1,6 +1,6 @@
 import express from 'express'
 import { initChatModel } from "langchain"
-import {JsonOutputParser} from '@langchain/core/output_parsers'
+import * as z from 'zod'
 
 const app=express()
 
@@ -8,22 +8,18 @@ const model=await initChatModel('lfm2.5:8b',{
     modelProvider: "ollama"
 })
 
-const parser=new JsonOutputParser()
+const PersonSchema=z.object({
+    name:z.string().describe('The name of the person referred by the user'),
+    age:z.number().positive().describe('Age of the person referred by the user')
+})
 
-const res=await model.invoke([
-    {role:'system',content:`
-        Respond in JSON only
-        {
-            "name":"",
-            "age":0
-        }
-        `},
-    {role:'human',content:'Who is William Shakesphere'}
+const structuredModel = model.withStructuredOutput(PersonSchema)
+
+const res=await structuredModel.invoke([
+    {role:'system',content:'Only include information explicitly known. Do not guess. If a field is unknown, return null.'},
+    {role:'human',content:'Tell me about cupboards'}
 ])
-console.log(res.content)
-const output=await parser.invoke(res)
-
-console.log(output)
+console.log(res)
 
 const PORT=8000
 app.listen(PORT,()=>console.log(`Server listening on port ${PORT}`))
