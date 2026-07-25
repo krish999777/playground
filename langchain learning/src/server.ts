@@ -1,6 +1,7 @@
 import express from 'express'
 import { initChatModel } from "langchain"
 import {ChatPromptTemplate} from '@langchain/core/prompts'
+import {StringOutputParser} from '@langchain/core/output_parsers'
 import * as z from 'zod'
 
 const app=express()
@@ -19,7 +20,14 @@ const chatTemplate=ChatPromptTemplate.fromMessages([
     ['human','Tell me about {item}']
 ])
 
-const chain=chatTemplate.pipe(model.withStructuredOutput(PersonSchema))
+const chat2=ChatPromptTemplate.fromMessages([
+    ['system','Frame a sentance with the given name and age'],
+    ['human','Name:{name},age {age}']
+])
+
+const parser=new StringOutputParser()
+
+const chain=chatTemplate.pipe(model.withStructuredOutput(PersonSchema)).pipe(chat2).pipe(model).pipe(parser)
 
 const res=await chain.invoke({
     item:'william shakesphear'
