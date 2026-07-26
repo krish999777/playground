@@ -1,5 +1,5 @@
 import express from 'express'
-import {initChatModel,tool} from "langchain"
+import {initChatModel,tool,createAgent} from "langchain"
 import {ChatPromptTemplate} from '@langchain/core/prompts'
 import * as z from 'zod'
 
@@ -28,7 +28,7 @@ const calc=tool(({expression}:{expression:string})=>{
 const currentTime=tool(()=>new Date(),{
     name:'Get current time',
     description:'Getting current time',
-    schema:z.object({})//am i supposed to do this for empty arguement?
+    schema:z.object({})
 })
 
 const languageInfo=tool(({language})=>{
@@ -53,11 +53,14 @@ const chat=await chatTemplate.invoke({
 // const result2=await currentTime.invoke({})
 // const result3=await languageInfo.invoke({language:'React'})
 
-const modelWithTools=model.bindTools([calc,currentTime,languageInfo])
+const agent = createAgent({
+    model,
+    tools:[calc,currentTime,languageInfo]
+})
 
-const res=await modelWithTools.invoke(chat)
+const res=await agent.invoke(chat)
 
-console.log(res)
+console.log(res.messages[res.messages.length-1]?.content)
 
 const PORT=8000
 app.listen(PORT,()=>console.log(`Server listening on port ${PORT}`))
