@@ -46,14 +46,18 @@ const languageInfo=tool(({language})=>{
 })
 
 const chat=await chatTemplate.invoke({
-    input:'What is 57*42'
+    input:'What is 57*42? What is the time? Give me some info about Java'
 })
 
-const result1=await calc.invoke({expression:'57*42'})
-const result2=await currentTime.invoke({})
-const result3=await languageInfo.invoke({language:'React'})
+// const result1=await calc.invoke({expression:'57*42'})
+// const result2=await currentTime.invoke({})
+// const result3=await languageInfo.invoke({language:'React'})
 
-console.log(result3)
+const modelWithTools=model.bindTools([calc,currentTime,languageInfo])
+
+const res=await modelWithTools.invoke(chat)
+
+console.log(res)
 
 const PORT=8000
 app.listen(PORT,()=>console.log(`Server listening on port ${PORT}`))
