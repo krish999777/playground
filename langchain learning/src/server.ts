@@ -3,8 +3,12 @@ import {initChatModel} from "langchain"
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import {OllamaEmbeddings} from '@langchain/ollama'
+import { QdrantVectorStore } from "@langchain/qdrant"
+import dotenv from 'dotenv'
+
 
 const app=express()
+dotenv.config()
 
 const model=await initChatModel('lfm2.5:8b',{
     modelProvider: "ollama"
@@ -24,9 +28,11 @@ const splitter= new RecursiveCharacterTextSplitter({
 
 const chunks = await splitter.splitDocuments(docs)
 
-const vectors=await embeddingModel.embedDocuments(chunks.map(chunk=>chunk.pageContent))
+const vectorStore=await QdrantVectorStore.fromExistingCollection(embeddingModel,{url:process.env.QDRANT_URL!,collectionName: "iso27001",})
 
-console.log(vectors,vectors.length,chunks.length)
+const vectorDoc=await vectorStore.similaritySearch('What is ISO 27001?',4)
+
+console.log(vectorDoc)
 
 const PORT=8000
 app.listen(PORT,()=>console.log(`Server listening on port ${PORT}`))
