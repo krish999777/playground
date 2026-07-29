@@ -10,7 +10,7 @@ const model=await initChatModel('lfm2.5:8b',{
 
 const parser=new StringOutputParser()
 
-const chain=model.pipe(parser)
+const chain=model.pipe(parser).withRetry({stopAfterAttempt:3})
 
 const stream=await chain.stream('What model is this?')
 
