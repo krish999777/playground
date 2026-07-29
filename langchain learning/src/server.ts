@@ -30,7 +30,9 @@ const chunks = await splitter.splitDocuments(docs)
 
 const vectorStore=await QdrantVectorStore.fromExistingCollection(embeddingModel,{url:process.env.QDRANT_URL!,collectionName: "iso27001",})
 
-const vectorDoc=await vectorStore.similaritySearch('What is ISO 27001?',4)
+const retriever=vectorStore.asRetriever({k:4})
+
+const vectorDoc=await retriever.invoke('What is ISO 27001?')
 
 console.log(vectorDoc)
 
