@@ -9,10 +9,10 @@ const state=Annotation.Root({
 })
 
 const graph=new StateGraph(state)
+.addNode('greetingNode',(s:typeof state.State)=>({greeting:`Hello ${s.name}`}))
+.addEdge(START,'greetingNode')
+.addEdge('greetingNode',END)
 
-graph.addNode('greetingNode',(s:typeof state.State)=>({greeting:`Hello ${s.name}`}))
-graph.addEdge(START,'greetingNode')
-graph.addEdge('greetingNode',END)
 const graphApp=graph.compile()
 
 const res=await graphApp.invoke({name:'Krish'})
