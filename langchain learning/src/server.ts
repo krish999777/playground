@@ -1,6 +1,6 @@
 import express from 'express'
 import {initChatModel} from "langchain"
-import {StringOutputParser} from '@langchain/core/output_parsers'
+// import {StringOutputParser} from '@langchain/core/output_parsers'
 
 const app=express()
 
@@ -8,17 +8,11 @@ const model=await initChatModel('lfm2.5:8b',{
     modelProvider: "ollama"
 })
 
-const parser=new StringOutputParser()
+// const parser=new StringOutputParser()
 
-const chain=model.pipe(parser).withRetry({stopAfterAttempt:3})
+const res=await model.batch(['What is react in 2 lines','what is express in 1 line',['user','what is node in 3 lines']])
 
-const stream=await chain.stream('What model is this?')
-
-for await(const chunk of stream){
-    console.log(chunk)
-}
-
-
+console.log(res.map(r=>r.content))
 
 
 const PORT=8000
