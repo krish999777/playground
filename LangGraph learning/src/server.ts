@@ -6,12 +6,17 @@ const app=express()
 const state=Annotation.Root({
     name:Annotation<string>(),
     greeting:Annotation<string>(),
+    uppercaseGreeting:Annotation<string>()
 })
 
+type StateType=typeof state.State
+
 const graph=new StateGraph(state)
-.addNode('greetingNode',(s:typeof state.State)=>({greeting:`Hello ${s.name}`}))
+.addNode('greetingNode',(s:StateType)=>({greeting:`Hello ${s.name}`}))
+.addNode('uppercaseNode',(state:StateType)=>({uppercaseGreeting:state.greeting.toUpperCase()}))
 .addEdge(START,'greetingNode')
-.addEdge('greetingNode',END)
+.addEdge('greetingNode','uppercaseNode')
+.addEdge('uppercaseNode',END)
 
 const graphApp=graph.compile()
 
