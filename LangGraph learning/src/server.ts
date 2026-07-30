@@ -15,11 +15,9 @@ graph.addEdge(START,'greetingNode')
 graph.addEdge('greetingNode',END)
 const graphApp=graph.compile()
 
-const res=await graphApp.stream({name:'Krish'})
+const res=await graphApp.invoke({name:'Krish'})
 
-for await (const chunk of res){
-    console.log(chunk)
-}
+console.log(res)
 
 const PORT=8000
 app.listen(PORT,()=>console.log(`Server listening on port ${PORT}`))
