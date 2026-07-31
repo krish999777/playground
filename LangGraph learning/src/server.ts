@@ -3,20 +3,19 @@ import {START,END,StateGraph,Annotation} from '@langchain/langgraph'
 
 const app=express()
 
-const state=Annotation.Root({
+const stateAnnotation=Annotation.Root({
     name:Annotation<string>(),
-    greeting:Annotation<string>(),
-    uppercaseGreeting:Annotation<string>()
+    result:Annotation<boolean>()
 })
 
-type StateType=typeof state.State
+type StateType=typeof stateAnnotation.State
 
-const graph=new StateGraph(state)
-.addNode('greetingNode',(s:StateType)=>({greeting:`Hello ${s.name}`}))
-.addNode('uppercaseNode',(state:StateType)=>({uppercaseGreeting:state.greeting.toUpperCase()}))
-.addEdge(START,'greetingNode')
-.addEdge('greetingNode','uppercaseNode')
-.addEdge('uppercaseNode',END)
+const graph=new StateGraph(stateAnnotation)
+.addNode('randomResult',(state:StateType)=>({result:Math.random()>0.5}))
+.addNode('A',()=>{console.log('A'); return {}})
+.addNode('B',()=>{console.log('B'); return {}})
+.addEdge(START,'randomResult')
+.addConditionalEdges('randomResult',(state)=>state.result?'A':'B')
 
 const graphApp=graph.compile()
 
