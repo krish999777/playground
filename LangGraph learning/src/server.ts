@@ -1,5 +1,5 @@
 import express from 'express'
-import {START,END,StateGraph,Annotation} from '@langchain/langgraph'
+import {START,END,StateGraph,Annotation,MemorySaver} from '@langchain/langgraph'
 
 const app=express()
 
@@ -14,6 +14,8 @@ const stateAnnotation=Annotation.Root({
     })
 })
 
+const checkpointer=new MemorySaver()
+
 const graph=new StateGraph(stateAnnotation)
 .addNode('inc',(state)=>{console.log(state.count);return({count:1,logs:[`Incremented to ${state.count+1}`]})})
 .addEdge(START,'inc')
@@ -21,11 +23,34 @@ const graph=new StateGraph(stateAnnotation)
 
 
 
-const graphApp=graph.compile()
+const graphApp=graph.compile({
+    checkpointer
+})
 
-const res=await graphApp.invoke({})
+await graphApp.invoke({},{
+    configurable:{
+        thread_id:'abc'
+    }
+})
 
-console.log(res)
+console.log('Graph executed once')
+
+await graphApp.invoke({},{
+    configurable:{
+        thread_id:'abc'
+    }
+})
+
+console.log('graph exectued twice')
+
+await graphApp.invoke({},{
+    configurable:{
+        thread_id:'123'
+    }
+})
+
+console.log('graph executed third time different thread id')
+
 
 const PORT=8000
 app.listen(PORT,()=>console.log(`Server listening on port ${PORT}`))
