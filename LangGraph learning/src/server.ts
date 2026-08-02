@@ -4,22 +4,26 @@ import {START,END,StateGraph,Annotation} from '@langchain/langgraph'
 const app=express()
 
 const stateAnnotation=Annotation.Root({
-    name:Annotation<string>(),
-    result:Annotation<boolean>()
+    count:Annotation<number>({
+        default:()=>0,
+        reducer:(current,update)=>current+update
+    }),
+    logs: Annotation<string[]>({
+        default: () => [],
+        reducer: (current, update) => current.concat(update)
+    })
 })
 
-type StateType=typeof stateAnnotation.State
-
 const graph=new StateGraph(stateAnnotation)
-.addNode('randomResult',(state:StateType)=>({result:Math.random()>0.5}))
-.addNode('A',()=>{console.log('A'); return {}})
-.addNode('B',()=>{console.log('B'); return {}})
-.addEdge(START,'randomResult')
-.addConditionalEdges('randomResult',(state)=>state.result?'A':'B')
+.addNode('inc',(state)=>{console.log(state.count);return({count:1,logs:[`Incremented to ${state.count+1}`]})})
+.addEdge(START,'inc')
+.addConditionalEdges('inc',(state)=>state.count<3?'inc':END)
+
+
 
 const graphApp=graph.compile()
 
-const res=await graphApp.invoke({name:'Krish'})
+const res=await graphApp.invoke({})
 
 console.log(res)
 
