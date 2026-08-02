@@ -1,56 +1,43 @@
 import express from 'express'
-import {START,END,StateGraph,Annotation,MemorySaver} from '@langchain/langgraph'
+import {START,END,StateGraph,Annotation,MemorySaver,messagesStateReducer} from '@langchain/langgraph'
+import {initChatModel,SystemMessage,HumanMessage} from 'langchain'
+import type {BaseMessage} from 'langchain'
 
 const app=express()
 
-const stateAnnotation=Annotation.Root({
-    count:Annotation<number>({
-        default:()=>0,
-        reducer:(current,update)=>current+update
-    }),
-    logs: Annotation<string[]>({
-        default: () => [],
-        reducer: (current, update) => current.concat(update)
-    })
+const model=await initChatModel('lfm2.5:8b',{
+    modelProvider:'ollama'
 })
 
 const checkpointer=new MemorySaver()
 
-const graph=new StateGraph(stateAnnotation)
-.addNode('inc',(state)=>{console.log(state.count);return({count:1,logs:[`Incremented to ${state.count+1}`]})})
-.addEdge(START,'inc')
-.addConditionalEdges('inc',(state)=>state.count<3?'inc':END)
-
-
-
-const graphApp=graph.compile({
-    checkpointer
+const messagesAnnotation=Annotation.Root({
+    messages:Annotation<BaseMessage[]>({
+        reducer:messagesStateReducer,
+        default:()=>[new SystemMessage('You are helpful assistant and you have to respond in one line')]
+    }),
+    question:Annotation<string>()
 })
 
-await graphApp.invoke({},{
-    configurable:{
-        thread_id:'abc'
-    }
+const graph=new StateGraph(messagesAnnotation)
+.addNode('getResponse',async (state)=>{
+    const humanMessage=new HumanMessage(state.question)
+    const res=await model.invoke([...state.messages,humanMessage])
+    return {messages:[humanMessage,res]}
+})
+.addEdge(START,'getResponse')
+.addConditionalEdges('getResponse',(state)=>(state.messages[state.messages.length-1]!).content.split(' ').length>20?'getResponse':END)
+
+const graphApp=graph.compile({checkpointer})
+
+const res=await graphApp.invoke({question:'My name is krish,What is the MERN stack'},{
+    configurable:{thread_id:'ABC'}
 })
 
-console.log('Graph executed once')
-
-await graphApp.invoke({},{
-    configurable:{
-        thread_id:'abc'
-    }
+const res2=await graphApp.invoke({question:'What is my name'},{
+    configurable:{thread_id:'ABC'}
 })
-
-console.log('graph exectued twice')
-
-await graphApp.invoke({},{
-    configurable:{
-        thread_id:'123'
-    }
-})
-
-console.log('graph executed third time different thread id')
-
+console.log(res2.messages,res2.question)
 
 const PORT=8000
 app.listen(PORT,()=>console.log(`Server listening on port ${PORT}`))
