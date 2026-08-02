@@ -39,6 +39,27 @@ function infixToPostfix(exp){
             if(op1Priority<=itemPriority&&!(op1Priority===1&&itemPriority===1)){
                 stack.pop()
                 postfix+=op1
+                while(stack.length>0){
+                    const newItem=stack[stack.length-1]
+                    if(newItem==='('){
+                        break;
+                    }
+                    let newItemPriority
+                    for(let j=0;j<operators.length;j++){
+                        if(operators[j]===newItem){
+                            newItemPriority=opVal[j]
+                        }
+                    }
+                    if(newItemPriority===1&&itemPriority===1){
+                        break;
+                    }
+                    if(newItemPriority<=itemPriority){
+                        stack.pop()
+                        postfix+=newItem
+                    }else{
+                        break
+                    }
+                }
                 stack.push(item)
             }else{
                 stack.push(item)
