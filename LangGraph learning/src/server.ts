@@ -7,31 +7,24 @@ const messagesAnnotation=Annotation.Root({
     logs:Annotation<string[]>({
         default:()=>[],
         reducer:(current,update)=>[...current,...update]
-    })
+    }),
+    math:Annotation<boolean>()
 })
 
 const graph=new StateGraph(messagesAnnotation)
-.addNode('A',()=>({logs:['A']}))
-.addNode('B',()=>{
-    console.log('B started')
-    return {logs:['B']}
+.addNode('Math',()=>({logs:['Math']}))
+.addNode('Science',()=>{
+    return {logs:['Science']}
 })
-.addNode('C',async ()=>{
-    await new Promise((resolve)=>{
-        setTimeout(()=>resolve(''),2000)
-    })
-    return {logs:['C']}
+.addNode('Researcher',async ()=>{
+    return {logs:['Researcher']}
     
 })
-.addEdge(START,'A')
-.addEdge('A','B')
-.addEdge('A','C')
-.addEdge('B',END)
-.addEdge('C',END)
+.addConditionalEdges(START,(state)=>state.math?['Math','Researcher']:['Science','Researcher'])
 
 const graphApp=graph.compile()
 
-const res=await graphApp.invoke({})
+const res=await graphApp.invoke({math:true})
 
 console.log(res)
 
