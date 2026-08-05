@@ -1,5 +1,5 @@
 import express from 'express'
-import {START,END,StateGraph,Annotation} from '@langchain/langgraph'
+import {START,END,StateGraph,Annotation,Command} from '@langchain/langgraph'
 
 const app=express()
 
@@ -16,15 +16,22 @@ const graph=new StateGraph(messagesAnnotation)
 .addNode('Science',()=>{
     return {logs:['Science']}
 })
-.addNode('Researcher',async ()=>{
-    return {logs:['Researcher']}
+.addNode('Researcher',async (state)=>{
+    return new Command({
+        update:{logs:['researcher']},
+        goto:state.math?'Math':'Science'
+    })
     
+},{
+    ends:['Science','Math']
 })
-.addConditionalEdges(START,(state)=>state.math?['Math','Researcher']:['Science','Researcher'])
+.addEdge(START,'Researcher')
+.addEdge('Science',END)
+.addEdge('Math',END)
 
 const graphApp=graph.compile()
 
-const res=await graphApp.invoke({math:true})
+const res=await graphApp.invoke({math:false})
 
 console.log(res)
 
