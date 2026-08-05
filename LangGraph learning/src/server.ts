@@ -8,7 +8,8 @@ const messagesAnnotation=Annotation.Root({
         default:()=>[],
         reducer:(current,update)=>[...current,...update]
     }),
-    math:Annotation<boolean>()
+    math:Annotation<boolean>(),
+    supervisorState:Annotation<'preWorker'|'postWorker'>()
 })
 
 const graph=new StateGraph(messagesAnnotation)
@@ -16,22 +17,28 @@ const graph=new StateGraph(messagesAnnotation)
 .addNode('Science',()=>{
     return {logs:['Science']}
 })
-.addNode('Researcher',async (state)=>{
+.addNode('Supervisor',async (state)=>{
+    if(state.supervisorState==='postWorker'){
+        return new Command({
+            goto:END
+        })
+    }
+
     return new Command({
-        update:{logs:['researcher']},
+        update:{supervisorState:'postWorker'},
         goto:state.math?'Math':'Science'
     })
     
 },{
-    ends:['Science','Math']
+    ends:['Science','Math',END]
 })
-.addEdge(START,'Researcher')
-.addEdge('Science',END)
-.addEdge('Math',END)
+.addEdge(START,'Supervisor')
+.addEdge('Science','Supervisor')
+.addEdge('Math','Supervisor')
 
 const graphApp=graph.compile()
 
-const res=await graphApp.invoke({math:false})
+const res=await graphApp.invoke({math:true})
 
 console.log(res)
 
