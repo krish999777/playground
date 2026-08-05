@@ -1,5 +1,6 @@
 import express from 'express'
 import {START,END,StateGraph,Annotation,Send,Command} from '@langchain/langgraph'
+import {initChatModel,createAgent,HumanMessage} from 'langchain'
 
 const app=express()
 
@@ -14,6 +15,13 @@ const messagesAnnotation=Annotation.Root({
     })
 })
 
+const model=await initChatModel('lfm2.5:8b',{modelProvider:'ollama'})
+
+const summaryAgent=createAgent({
+    model,
+    systemPrompt:'You will recieve a topic and you have to summarize that topic in 2 lines.',
+})
+
 const graph=new StateGraph(messagesAnnotation)
 .addNode('planner',(state)=>(new Command({
         goto:state.topics.map((topic:string)=>new Send('summerize',{topic}))
@@ -21,13 +29,18 @@ const graph=new StateGraph(messagesAnnotation)
 ),{
     ends:['summerize']
 })
-.addNode('summerize',(state:{topic:string})=>({summary:[`summary of ${state.topic}`]}))
+.addNode('summerize',async (state:{topic:string})=>{
+    const res=await summaryAgent.invoke({messages:[new HumanMessage(state.topic)]})
+    return {summary:[res.messages[res.messages.length-1]?.content]}
+})
+.addNode('merge',(state)=>{console.log(state.summary);return{}})
 .addEdge(START,'planner')
-.addEdge('summerize',END)
+.addEdge('summerize','merge')
+.addEdge('merge',END)
 
 const graphApp=graph.compile()
 
-const res=await graphApp.invoke({topics:['hahah','lol','krish']})
+const res=await graphApp.invoke({topics:['MERN stack','React.js','Node.js']})
 
 console.log(res)
 
