@@ -5,61 +5,35 @@ import * as z from 'zod'
 
 const app=express()
 
-const messagesAnnotation=Annotation.Root({
-    question:Annotation<string>(),
-    answer:Annotation<string>(),
-    isComplete:Annotation<boolean>(),
+const childGraphAnnotation=Annotation.Root({
+    text:Annotation<string>()
 })
 
-const supervisorOutput=z.object({
-    model:z.enum(['math','general']).describe("Whether the model that answers this question should be math or general ")
+const graphAnnotation=Annotation.Root({
+    name:Annotation<string>(),
+    greeting:Annotation<string>()
 })
 
-const model=await initChatModel('lfm2.5:8b',{modelProvider:'ollama'})
+const childGraph=new StateGraph(childGraphAnnotation)
+.addNode('greeting',(state)=>({text:`Hello ${state.text}`}))
+.addNode('uppercase',(state)=>({text:state.text.toUpperCase()}))
+.addEdge(START,'greeting')
+.addEdge('greeting','uppercase')
+.addEdge('uppercase',END)
 
-const supervisorModel=model.withStructuredOutput(supervisorOutput)
+const childGraphApp=childGraph.compile()
 
-const graph=new StateGraph(messagesAnnotation)
-.addNode('supervisor',async (state)=>{
-    if(state.isComplete){
-        return new Command({goto:END})
-    }
-    const res=await supervisorModel.invoke([
-        new SystemMessage('You are model choser, You dont have to answer the question, only choose if the given question should be answered with a math model or a general model. Always choose the math model if the question involves any kind of math'),
-        new HumanMessage(state.question)
-    ])
-    console.log(res)
-    if(res.model==='math'){
-        return new Command({goto:new Send('math',{question:state.question})})
-    }else{
-        return new Command({goto:new Send('general',{question:state.question})})
-    }
-},{
-    ends:['math','general',END]
+const graph=new StateGraph(graphAnnotation)
+.addNode('run',async (state)=>{
+    const {text:greeting}=await childGraphApp.invoke({text:state.name})
+    return {greeting}
 })
-.addNode('math',async (state)=>{
-    console.log('math model invoked')
-    const res=await model.invoke([
-        new SystemMessage('You are math specialist, you have to answer the math question the user has. Only respond with the answer and not anything else'),
-        new HumanMessage(state.question)
-    ])
-    return {answer:res.content,isComplete:true}
-})
-.addNode('general',async (state)=>{
-    console.log('general model invoked')
-    const res=await model.invoke([
-        new HumanMessage(state.question)
-    ])
-    return {answer:res.content,isComplete:true}
-})
-
-.addEdge(START,'supervisor')
-.addEdge('math','supervisor')
-.addEdge('general','supervisor')
+.addEdge(START,'run')
+.addEdge('run',END)
 
 const graphApp=graph.compile()
 
-const res=await graphApp.invoke({question:"What is 1+1"})
+const res=await graphApp.invoke({name:'Krish'})
 
 console.log(res)
 
