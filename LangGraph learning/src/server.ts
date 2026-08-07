@@ -1,39 +1,76 @@
 import express from 'express'
-import {START,END,StateGraph,Annotation,Send,Command} from '@langchain/langgraph'
+import {START,END,StateGraph,Annotation,Send,Command,interrupt,MemorySaver} from '@langchain/langgraph'
 import {initChatModel,HumanMessage,SystemMessage} from 'langchain'
 import * as z from 'zod'
 
 const app=express()
 
-const graphAnnotation=Annotation.Root({
-    name:Annotation<string>(),
-    greeting:Annotation<string>()
+const messagesAnnotation=Annotation.Root({
+    question:Annotation<string>(),
+    answer:Annotation<string>(),
+    isComplete:Annotation<boolean>(),
 })
 
-const childGraph=new StateGraph(graphAnnotation)
-.addNode('makeGreeting',(state)=>({greeting:`Hello ${state.name}`}))
-.addNode('uppercase',(state)=>({greeting:state.greeting.toUpperCase()}))
-.addEdge(START,'makeGreeting')
-.addEdge('makeGreeting','uppercase')
-.addEdge('uppercase',END)
+const supervisorOutput=z.object({
+    model:z.enum(['math','general']).describe("Whether the model that answers this question should be math or general ")
+})
 
-const childGraphApp=childGraph.compile()
+const checkpointer=new MemorySaver()
+const model=await initChatModel('lfm2.5:8b',{modelProvider:'ollama'})
 
-const graph=new StateGraph(graphAnnotation)
-.addNode('run',childGraphApp)
-.addEdge(START,'run')
-.addEdge('run',END)
+const supervisorModel=model.withStructuredOutput(supervisorOutput)
 
-const graphApp=graph.compile()
+const graph=new StateGraph(messagesAnnotation)
+.addNode('supervisor',async (state)=>{
+    if(state.isComplete){
+        return new Command({goto:END})
+    }
+    const res=await supervisorModel.invoke([
+        new SystemMessage('You are model choser, You dont have to answer the question, only choose if the given question should be answered with a math model or a general model. Always choose the math model if the question involves any kind of math'),
+        new HumanMessage(state.question)
+    ])
+    console.log(res)
+    if(res.model==='math'){
+        return new Command({goto:new Send('math',{question:state.question})})
+    }else{
+        return new Command({goto:new Send('general',{question:state.question})})
+    }
+},{
+    ends:['math','general',END]
+})
+.addNode('math',async (state)=>{
+    console.log('math model invoked')
+    const canContinue=interrupt('Can i invoke the math model?')
+    console.log(canContinue)
+    const res=await model.invoke([
+        new SystemMessage('You are math specialist, you have to answer the math question the user has. Only respond with the answer and not anything else'),
+        new HumanMessage(state.question)
+    ])
+    return {answer:res.content,isComplete:true}
+})
+.addNode('general',async (state)=>{
+    console.log('general model invoked')
+    const res=await model.invoke([
+        new HumanMessage(state.question)
+    ])
+    return {answer:res.content,isComplete:true}
+})
 
-const res=await graphApp.invoke({name:'Krish'})
+.addEdge(START,'supervisor')
+.addEdge('math','supervisor')
+.addEdge('general','supervisor')
 
-const drawableGraph=await graphApp.getGraphAsync()
-const mermaid=drawableGraph.drawMermaid()
+const graphApp=graph.compile({checkpointer})
 
-console.log(mermaid)
+const res=await graphApp.invoke({question:"What is 1+1"},{configurable:{thread_id:'abc'}})
 
-console.log(res)
+if(res!.__interrupt__){
+    await new Promise((resolve)=>setTimeout(()=>resolve(''),5000))
+    const res=await graphApp.invoke(new Command({resume:'Yes you may'}),{configurable:{thread_id:'abc'}})
+    console.log(res)
+}else{
+    console.log(res)
+}
 
 const PORT=8000
 app.listen(PORT,()=>console.log(`Server listening on port ${PORT}`))
