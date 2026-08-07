@@ -5,29 +5,22 @@ import * as z from 'zod'
 
 const app=express()
 
-const childGraphAnnotation=Annotation.Root({
-    text:Annotation<string>()
-})
-
 const graphAnnotation=Annotation.Root({
     name:Annotation<string>(),
     greeting:Annotation<string>()
 })
 
-const childGraph=new StateGraph(childGraphAnnotation)
-.addNode('greeting',(state)=>({text:`Hello ${state.text}`}))
-.addNode('uppercase',(state)=>({text:state.text.toUpperCase()}))
-.addEdge(START,'greeting')
-.addEdge('greeting','uppercase')
+const childGraph=new StateGraph(graphAnnotation)
+.addNode('makeGreeting',(state)=>({greeting:`Hello ${state.name}`}))
+.addNode('uppercase',(state)=>({greeting:state.greeting.toUpperCase()}))
+.addEdge(START,'makeGreeting')
+.addEdge('makeGreeting','uppercase')
 .addEdge('uppercase',END)
 
 const childGraphApp=childGraph.compile()
 
 const graph=new StateGraph(graphAnnotation)
-.addNode('run',async (state)=>{
-    const {text:greeting}=await childGraphApp.invoke({text:state.name})
-    return {greeting}
-})
+.addNode('run',childGraphApp)
 .addEdge(START,'run')
 .addEdge('run',END)
 
