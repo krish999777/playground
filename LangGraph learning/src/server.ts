@@ -28,6 +28,11 @@ const graphApp=graph.compile()
 
 const res=await graphApp.invoke({name:'Krish'})
 
+const drawableGraph=await graphApp.getGraphAsync()
+const mermaid=drawableGraph.drawMermaid()
+
+console.log(mermaid)
+
 console.log(res)
 
 const PORT=8000
