@@ -31,7 +31,7 @@ app.post('/image',upload.single('image'),async (req,res)=>{
             {type:'image_url',image_url:`data:${req.file?.mimetype};base64,${data}`}
         ]}
     ])
-    console.log(resp.content)
+    res.status(200).json({message:resp.content})
 })
 
 app.listen(8000,()=>console.log('Server listening on port 8000'))
