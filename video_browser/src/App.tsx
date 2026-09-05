@@ -3,6 +3,7 @@ import { useRef,useEffect,useState } from "react"
 export default function App(){
   const video=useRef<HTMLVideoElement>(null)
   const recorder=useRef<MediaRecorder|null>(null)
+  const chunks=useRef<Blob[]>([])
   const [error,setError]=useState<string|null>(null)
   const [,forceRender]=useState<number>(0)
   const [camera,setCamera]=useState<boolean>(true)
@@ -10,6 +11,9 @@ export default function App(){
   useEffect(()=>{
     const handleStart=()=>forceRender(prev=>prev+1);
     let myStream:null|MediaStream=null;
+    const handleDataAvailable=(event:BlobEvent)=>{
+      chunks.current.push(event.data)
+    };
     (async ()=>{
       try{
         if(!camera){
@@ -24,6 +28,7 @@ export default function App(){
         video.current!.srcObject=stream
         rec.addEventListener('start',handleStart)
         rec.addEventListener('stop',handleStart)
+        rec.addEventListener('dataavailable',handleDataAvailable)
         handleStart()
       }catch(err:any){
         setError(err?.message)
@@ -32,6 +37,7 @@ export default function App(){
     return ()=>{
       recorder.current?.removeEventListener('start',handleStart)
       recorder.current?.removeEventListener('stop',handleStart)
+      recorder.current?.removeEventListener('dataavailable',handleDataAvailable)
       if(recorder.current?.state==='recording'){
         recorder.current.stop()
       }
@@ -51,6 +57,7 @@ export default function App(){
       return
     }
     recorder.current.start()
+    chunks.current=[]
   }
   function stopRecording(){
     if(!recorder.current){
@@ -62,6 +69,16 @@ export default function App(){
       return
     }
     recorder.current.stop()
+  }
+  function downloadChunks(){
+    const recording=new Blob(chunks.current,{
+      type:'video/webm'
+    })
+    const url=URL.createObjectURL(recording)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'recording.webm'
+    link.click()
   }
   return(
     <>
@@ -79,6 +96,7 @@ export default function App(){
         <button onClick={startRecording}>Start</button>
       }
       <button onClick={()=>setCamera(prev=>!prev)}>Turn {camera?'Off':'On'} camera</button>
+      {chunks.current.length>0?<button onClick={downloadChunks}>Download</button>:null}
     </>
   )
 }
