@@ -30,12 +30,13 @@ export default function App() {
 
         videoRef.current.srcObject = stream;
         videoRef.current.addEventListener("loadeddata", () => {
+          canvas.current!.width=videoRef.current!.videoWidth
+          canvas.current!.height=videoRef.current!.videoHeight
           function recogniseFace(){
             if(!ctx){
               return
             }
-            canvas.current!.width=videoRef.current!.videoWidth
-            canvas.current!.height=videoRef.current!.videoHeight
+            ctx.clearRect(0,0,canvas.current!.width,canvas.current!.height)
             ctx.drawImage(videoRef.current!,0,0,canvas.current!.width,canvas.current!.height)
             const result = faceLandmarker.detectForVideo(
               videoRef.current!,
@@ -44,11 +45,23 @@ export default function App() {
             if(result.faceLandmarks.length===0){
               console.log('No face found')
             }else{
+              let minX=1,maxX=0;
+              let minY=1,maxY=0;
               result.faceLandmarks[0].forEach(landmark=>{
+                minX=Math.min(minX,landmark.x)
+                minY=Math.min(minY,landmark.y)
+                maxX=Math.max(maxX,landmark.x)
+                maxY=Math.max(maxY,landmark.y)
                 ctx.beginPath()
                 ctx.arc(landmark.x*canvas.current!.width,landmark.y*canvas.current!.height,2,0,Math.PI*2)
                 ctx.fill()
               })
+              const faceWidth=maxX-minX
+              const faceHeight=maxY-minY
+              const centerX=(maxX+minX)/2
+              const centerY=(maxY+minY)/2
+              // console.log(centerX,centerY)
+              ctx.strokeRect(minX*canvas.current!.width,minY*canvas.current!.height,faceWidth*canvas.current!.width,faceHeight*canvas.current!.height)
             }
             requestAnimationFrame(recogniseFace)
           }
