@@ -56,8 +56,8 @@ export default function App(){
       setError('Recorder not set')
       return
     }
-    recorder.current.start()
     chunks.current=[]
+    recorder.current.start()
   }
   function stopRecording(){
     if(!recorder.current){
@@ -79,6 +79,7 @@ export default function App(){
     link.href = url
     link.download = 'recording.webm'
     link.click()
+    URL.revokeObjectURL(url)
   }
   return(
     <>
