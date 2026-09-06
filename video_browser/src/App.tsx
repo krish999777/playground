@@ -4,6 +4,7 @@ export default function App(){
   const video=useRef<HTMLVideoElement>(null)
   const recorder=useRef<MediaRecorder|null>(null)
   const chunks=useRef<Blob[]>([])
+  const canvas=useRef<HTMLCanvasElement>(null)
   const [error,setError]=useState<string|null>(null)
   const [,forceRender]=useState<number>(0)
   const [camera,setCamera]=useState<boolean>(true)
@@ -34,6 +35,14 @@ export default function App(){
         setError(err?.message)
       }
     })()
+    if(!canvas.current){
+      return
+    }
+    const ctx=canvas.current.getContext('2d')
+    if(!ctx){
+      return
+    }
+    ctx.fillRect(200,0,100,100)
     return ()=>{
       recorder.current?.removeEventListener('start',handleStart)
       recorder.current?.removeEventListener('stop',handleStart)
@@ -84,6 +93,7 @@ export default function App(){
   return(
     <>
       <div>{error}</div>
+      <canvas ref={canvas}/>
       {camera?<video ref={video} autoPlay playsInline />:null}
       {
         !recorder.current
