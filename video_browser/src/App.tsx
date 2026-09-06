@@ -3,6 +3,7 @@ import {FaceLandmarker,FilesetResolver} from '@mediapipe/tasks-vision'
 
 export default function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvas=useRef<HTMLCanvasElement>(null)
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -10,6 +11,7 @@ export default function App() {
 
     async function setupCamera() {
       try {
+        const ctx=canvas.current!.getContext('2d')
         const vision=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm")
         const faceLandmarker = await FaceLandmarker.createFromOptions(
         vision,
@@ -29,6 +31,12 @@ export default function App() {
         videoRef.current.srcObject = stream;
         videoRef.current.addEventListener("loadeddata", () => {
           function recogniseFace(){
+            if(!ctx){
+              return
+            }
+            canvas.current!.width=videoRef.current!.videoWidth
+            canvas.current!.height=videoRef.current!.videoHeight
+            ctx.drawImage(videoRef.current!,0,0,canvas.current!.width,canvas.current!.height)
             const result = faceLandmarker.detectForVideo(
               videoRef.current!,
               performance.now()
@@ -36,7 +44,11 @@ export default function App() {
             if(result.faceLandmarks.length===0){
               console.log('No face found')
             }else{
-              console.log(result.faceLandmarks[0][0])
+              result.faceLandmarks[0].forEach(landmark=>{
+                ctx.beginPath()
+                ctx.arc(landmark.x*canvas.current!.width,landmark.y*canvas.current!.height,2,0,Math.PI*2)
+                ctx.fill()
+              })
             }
             requestAnimationFrame(recogniseFace)
           }
@@ -61,12 +73,13 @@ export default function App() {
       <h1>MediaPipe Face Landmarker</h1>
 
       {error && <p>{error}</p>}
-
+      <canvas ref={canvas}/>
       <video
         ref={videoRef}
         autoPlay
         playsInline
         muted
+        hidden
       />
     </main>
   );
