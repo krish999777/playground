@@ -32,6 +32,10 @@ export default function App() {
         videoRef.current.addEventListener("loadeddata", () => {
           canvas.current!.width=videoRef.current!.videoWidth
           canvas.current!.height=videoRef.current!.videoHeight
+          const landmarksArray=[
+            FaceLandmarker.FACE_LANDMARKS_LEFT_IRIS,
+            FaceLandmarker.FACE_LANDMARKS_RIGHT_IRIS,
+          ]
           function recogniseFace(){
             if(!ctx){
               return
@@ -45,9 +49,20 @@ export default function App() {
             if(result.faceLandmarks.length===0){
               console.log('No face found')
             }else{
+              const face=result.faceLandmarks[0]
+              landmarksArray.forEach(landmarks=>{
+                ctx.beginPath()
+                landmarks.forEach(landmark=>{
+                  ctx.moveTo(face[landmark.start].x*canvas.current!.width,face[landmark.start].y*canvas.current!.height)
+                  ctx.lineTo(face[landmark.end].x*canvas.current!.width,face[landmark.end].y*canvas.current!.height)
+                  ctx.strokeStyle='#FF0000'
+                  ctx.stroke()
+                })
+              })
+              ctx.strokeStyle='#000000'
               let minX=1,maxX=0;
               let minY=1,maxY=0;
-              result.faceLandmarks[0].forEach(landmark=>{
+              face.forEach(landmark=>{
                 minX=Math.min(minX,landmark.x)
                 minY=Math.min(minY,landmark.y)
                 maxX=Math.max(maxX,landmark.x)
