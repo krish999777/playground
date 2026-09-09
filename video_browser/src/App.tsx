@@ -61,7 +61,16 @@ export default function App() {
               const centerX=(maxX+minX)/2
               const centerY=(maxY+minY)/2
               // console.log(centerX,centerY)
+              ctx.beginPath()
               ctx.strokeRect(minX*canvas.current!.width,minY*canvas.current!.height,faceWidth*canvas.current!.width,faceHeight*canvas.current!.height)
+              ctx.beginPath()
+              ctx.moveTo(minX*canvas.current!.width,centerY*canvas.current!.height)
+              ctx.lineTo(maxX*canvas.current!.width,centerY*canvas.current!.height)
+              ctx.stroke()
+              ctx.beginPath()
+              ctx.moveTo(centerX*canvas.current!.width,minY*canvas.current!.height)
+              ctx.lineTo(centerX*canvas.current!.width,maxY*canvas.current!.height)
+              ctx.stroke()
             }
             requestAnimationFrame(recogniseFace)
           }
