@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {FaceLandmarker,FilesetResolver} from '@mediapipe/tasks-vision'
+import * as THREE from "three";
 
 export default function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -19,7 +20,8 @@ export default function App() {
           baseOptions: {
             modelAssetPath: "/models/face_landmarker.task"
           },
-          runningMode:"VIDEO"
+          runningMode:"VIDEO",
+          outputFacialTransformationMatrixes:true
         });
         stream = await navigator.mediaDevices.getUserMedia({
           video: true,
@@ -50,6 +52,19 @@ export default function App() {
               console.log('No face found')
             }else{
               const face=result.faceLandmarks[0]
+              ctx.beginPath()
+              ctx.moveTo(1/3*canvas.current!.width,0)
+              ctx.lineTo(1/3*canvas.current!.width,canvas.current!.height)
+              ctx.stroke()
+              ctx.moveTo(2/3*canvas.current!.width,0)
+              ctx.lineTo(2/3*canvas.current!.width,canvas.current!.height)
+              ctx.stroke()
+              ctx.moveTo(0,1/3*canvas.current!.height)
+              ctx.lineTo(canvas.current!.width,1/3*canvas.current!.height)
+              ctx.stroke()
+              ctx.moveTo(0,2/3*canvas.current!.height)
+              ctx.lineTo(canvas.current!.width,2/3*canvas.current!.height)
+              ctx.stroke()
               landmarksArray.forEach(landmarks=>{
                 ctx.beginPath()
                 landmarks.forEach(landmark=>{
@@ -62,6 +77,23 @@ export default function App() {
               ctx.strokeStyle='#000000'
               let minX=1,maxX=0;
               let minY=1,maxY=0;
+              const matrix=(result.facialTransformationMatrixes?.[0])
+
+              if(matrix){
+                if (matrix) {
+                  const m = new THREE.Matrix4()
+                  m.fromArray(matrix.data)
+                  
+                  const euler = new THREE.Euler()
+                  euler.setFromRotationMatrix(m)
+
+                  console.log(euler.x)
+                  console.log(euler.y)
+                  console.log(euler.z)
+                  console.log('\n')
+                }
+              }
+
               face.forEach(landmark=>{
                 minX=Math.min(minX,landmark.x)
                 minY=Math.min(minY,landmark.y)
