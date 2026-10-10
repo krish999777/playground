@@ -1,9 +1,15 @@
 import java.util.*;
 public class DSA {
     public static void main(String args[]){
-        Integer a[]={1,2} ;
-        ArrayList<Integer> arr=new ArrayList<>(Arrays.asList(a));
-        System.out.println(arr);
-        
+        Set<Integer> s=new HashSet<>();
+        s.add(1);
+        s.add(2);
+        s.add(3);
+        s.add(2);
+        System.out.println(s.contains(2));
+        System.out.println(s.contains(4));
+        for(int a:s){
+            System.out.println(a);
+        }
     }
 }
